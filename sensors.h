@@ -8,8 +8,9 @@
 #ifndef SENSORS_H_
 #define SENSORS_H_
 
-
-
-
+extern void LeftEncoderIntHandler(void);
+extern void RigthEncoderIntHandler(void);
+extern void LeftEncoderInit(void);
+extern void RigthEncoderInit(void);
 
 #endif /* SENSORS_H_ */
