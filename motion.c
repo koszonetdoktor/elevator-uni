@@ -89,3 +89,17 @@ void SlowMotion(unsigned char lift,unsigned char direction){		// lift=1(right),l
 
 }// end of SlowMotion()
 
+void StopMotion(unsigned char lift){
+	if(lift == 1){
+		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , 1);
+		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , 1);
+	}
+	if(lift == 0){
+		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 , 1);
+		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , 1);
+	}
+	else{
+		return -1;
+	}
+}
+
