@@ -11,7 +11,8 @@
 int counter_left;
 int counter_right;
 volatile unsigned char floor_switch;
-volatile unsigned char swi2;
+volatile unsigned char left_reed_int_enable;
+volatile unsigned char right_reed_int_enable;
 
 extern void LeftEncoderIntHandler(void);
 extern void RigthEncoderIntHandler(void);
@@ -31,7 +32,15 @@ extern void SensorsInit(void);
 #define LEARNING_LEFT	2
 #define WAIT_LEFT		3
 #define END_LEFT		4
+#define LEFT_POS		6
+
 #define START_RIGHT		5
-#define WAIT_STOP		6
+#define CYCLE_RIGHT		8
+#define LEARNING_RIGHT	9
+#define WAIT_RIGHT		10
+#define END_RIGHT		11
+#define RIGHT_POS		13
+
+#define LEARN_END		14
 
 #endif /* SENSORS_H_ */
