@@ -8,6 +8,7 @@
 #ifndef MOTION_H_
 #define MOTION_H_
 
+
 //*****************************************
 //PWM signals
 //*****************************************
@@ -19,15 +20,19 @@
 #define RIGHT_LIFT	1
 #define UPWARD 		0
 #define DOWNWARD	1
+#define NODIR		2
 
 
 extern void SlowMotion(unsigned char lift, unsigned char direction); // lift=1(right),lift=0(left)  direction=1(up),direction=0(down)
+// on the right lift 10000 PWM = left lift 8000 PWM
 extern void PWMInit(void);
 extern void StopMotion(unsigned char lift); // lift=1 right, lift=0 left
 extern void PWMInit0(void);
 extern void PWMInit1(void);
 extern void PWMInit2(void);
 extern void PWMInit3(void);
+int Deceleration(int distance);
+extern void Move(unsigned char lift,unsigned char direction, float velocity); // this is a velocity based cabin mover function
 
 
 #endif /* MOTION_H_ */
