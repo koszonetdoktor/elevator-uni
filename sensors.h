@@ -14,6 +14,7 @@ volatile unsigned char floor_switch;
 volatile unsigned char left_reed_int_enable;
 volatile unsigned char right_reed_int_enable;
 
+
 extern void LeftEncoderIntHandler(void);
 extern void RigthEncoderIntHandler(void);
 extern void LeftEncoderInit(void);
@@ -23,6 +24,8 @@ extern void RigthEndStateIntHandler(void);
 extern void HbridgeErrorIntHandler(void);
 extern void LeftHbridgeErrorIntHandler(void);
 extern void SensorsInit(void);
+extern void LeftLevelSensorIntHandler(void);
+extern void RightLevelSensorIntHandler(void);
 
 //********************************************
 // defined values for the Learning Switch Case
