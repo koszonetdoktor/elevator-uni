@@ -18,9 +18,9 @@
 #define PWM22 	0x00050C06	//PF3
 #define LEFT_LIFT 	0
 #define RIGHT_LIFT	1
-#define UPWARD 		0
-#define DOWNWARD	1
-#define NODIR		2
+#define UPWARD 		1
+#define DOWNWARD	2
+#define NODIR		0
 
 
 extern void SlowMotion(unsigned char lift, unsigned char direction); // lift=1(right),lift=0(left)  direction=1(up),direction=0(down)
@@ -31,7 +31,8 @@ extern void PWMInit0(void);
 extern void PWMInit1(void);
 extern void PWMInit2(void);
 extern void PWMInit3(void);
-int Deceleration(int distance);
+extern void Deceleration(unsigned char lift, unsigned char direction, float s, char velocity);
+extern int DecEquation(float s, float a);
 extern void Move(unsigned char lift,unsigned char direction, float velocity); // this is a velocity based cabin mover function
 
 
