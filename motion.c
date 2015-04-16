@@ -25,6 +25,8 @@
 #include "math.h"
 #include "timers.h"
 #include "motion.h"
+#include "structs.h"
+#include "defines.h"
 
 int desired_v;
 
@@ -143,12 +145,12 @@ void PWMInit3(void){
 
 void SlowMotion(unsigned char lift,unsigned char direction){		// lift=1(right),lift=0(left)  direction=0(up),direction=1(down)
 	if(lift == 0){ // left
-		if(direction == 0){ // up
+		if(direction == UPWARD){ // up
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 ,1 );
 			SysCtlDelay(200);
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , 12090); // v= 30 upward
 		}
-		if(direction == 1){
+		if(direction == DOWNWARD){
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , 1);
 			SysCtlDelay(200);
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 , 10000); // v = 30 Downward
@@ -158,12 +160,12 @@ void SlowMotion(unsigned char lift,unsigned char direction){		// lift=1(right),l
 		}
 	}
 	if(lift == 1){
-		if(direction == 0){ // up
+		if(direction == UPWARD){ // up
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , 15508); // v =~ 330
 			SysCtlDelay(200);
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , 1);
 		}
-		if(direction == 1){
+		if(direction == DOWNWARD){
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , 1);
 			SysCtlDelay(200);
 			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , 12000); // v =~ 330
@@ -176,58 +178,57 @@ void SlowMotion(unsigned char lift,unsigned char direction){		// lift=1(right),l
 
 }// end of SlowMotion(
 
-void Move(unsigned char lift,unsigned char direction, float velocity){
+void Move(unsigned char lift,unsigned char direction, float velocity){ // this moves the cabin, with acceleration movement at the begining
 	// azt még lehetne ezen fejleszteni, hogy legyen egy univerzális sebesség, mert így mind a kettő más más tartományban mozog
+/*******************************
+* Acceleration part
+*****************************/
 
-	if((velocity>60) && (lift == 0)){ // this is for safety,
-		velocity = 60;
+	if((velocity>560) && (lift == 0)){ // this is for safety,
+		velocity = 560;
 	}
-	if((velocity>700) && (lift == 1)){
-		velocity = 700;
+	if((velocity>7500) && (lift == 1)){
+		velocity = 7500;
 	}
 
-	if(lift == 0){  // left
-		left_desired_v = velocity;
-		left_dir = direction;
-		if(direction == 0){  // up
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 ,1 );
-			SysCtlDelay(200);
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , (10000 * (velocity/30)));
-		}
-		if(direction == 1){ // down
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , 1);
-			SysCtlDelay(200);
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 , (10000 * (velocity/30)));
-		}
+	if(lift == LEFT_LIFT){
+		left.direction = direction;
+		//left.desired_velocity = velocity;
+		left.final_velocity = velocity;
+		left.acceleration = 1;
+		left.moving = 1;
 	}
-	if(lift == 1){  // right
-		right_desired_v = velocity;
-		right_dir = direction;
-		if(direction == 0){ // up
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , (15508 * (velocity/330)));
-			SysCtlDelay(200);
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , 1);
-		}
-		if(direction == 1){ // down
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , 1);
-			SysCtlDelay(200);
-			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , (12000 * (velocity/330)));
-		}
+	if(lift == RIGHT_LIFT){
+		right.direction = direction;
+		right.desired_velocity = velocity;
+		right.final_velocity = velocity;
+		right.acceleration = 1;
+		right.moving = 1;
 	}
-} // end of move
+
+} // end of Move()
 
 void StopMotion(unsigned char lift){
 	if(lift == 1){ // right
-		right_desired_v = 0;
-		right_dir = NODIR;
+		right.desired_velocity = 0;
+		right.direction = NODIR;
 		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , 1);
 		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , 1);
+		right.moving = 0;
+		right.next_target = NO_TARGET;
+		/*right.dec_v =  0;
+		SysCtlDelay(200);*/
 	}
 	if(lift == 0){ // left
-		left_desired_v = 0;
-		left_dir = NODIR;
+		left.desired_velocity = 0;
+		left.direction = NODIR;
 		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 , 1);
 		PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , 1);
+		left.moving = 0;
+		left.next_target = NO_TARGET;
+		left.dec_v = 0;
+		/*left.dec_v = 0;
+		SysCtlDelay(200);*/
 	}
 	else{
 		return -1;
@@ -238,20 +239,68 @@ void StopMotion(unsigned char lift){
 /****************************************************************
  * Under Development
  */
-void Acceleration(){
 
 
+
+void Deceleration(unsigned char lift,unsigned char direction,float s, char velocity){ // ebbe nem rakok ciklust mert ezt a szintérzékelő lednek kell majd kiütni szerintem. (s == visszamaradt távolság, v = cabin sebesség)
+	// lehet kne bele tenni egy kis csúszást, hogy ha el is érte a nulla sebességet de a szintet még nem , akkor is guruljon.
+	// le kell tezstelni jobb oldalra is
+	float a =  1.0000005;
+	float v;
+
+	v = sqrt(2*a*s); // this is the main equation of the deceleration
+	/*if(velocity < v){
+		v = velocity;
+	}*/
+	if(v != 0){UARTprintf("%d  %d\n",v,left.test);}
+	if(lift == LEFT_LIFT){
+		left.desired_velocity = v;
+		if(direction == UPWARD){  // up
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 ,1 );
+			SysCtlDelay(200);
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , (10000 * (v/30)));
+		}
+		if(direction == DOWNWARD){ // down
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_1 , 1);
+			SysCtlDelay(200);
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_0 , (10000 * (v/30)));
+		}
+	}
+	if(lift == RIGHT_LIFT){
+		right.desired_velocity = v;
+		if(direction == UPWARD){ // up
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , (15508 * (v/330)));
+			SysCtlDelay(200);
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , 1);
+		}
+		if(direction == DOWNWARD){ // down
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_2 , 1);
+			SysCtlDelay(200);
+			PWMPulseWidthSet(PWM0_BASE, PWM_OUT_3 , (12000 * (v/330)));
+		}
+	}
+} // end of Decelartion()
+
+int Round(float myfloat)
+{
+  double integral;
+  float fraction = (float)modf(myfloat, &integral);
+
+  if (fraction >= 0.5)
+    integral += 1;
+  if (fraction <= -0.5)
+    integral -= 1;
+
+  return (int)integral;
 }
 
+int DecEquation(float s, float a){
+	int v;
+	float tmp;
 
-int Deceleration(int distance){
-	unsigned char a = 2;
-	int velocity;
+	v=(int)sqrt(2*a*s);
 
-	velocity = sqrt(2*a*distance); // this is the main equation of the deceleration
-
-	return velocity;
+	return v;
 }
-
 
 
