@@ -31,6 +31,7 @@ int counter_left, counter_right;
 volatile unsigned char left_reed_int_enable,right_reed_int_enable;
 
 
+// átíroma szint fototranyóját interruptosrA
 
 
 //*******************************************************************************
@@ -52,14 +53,41 @@ void  ReedIntHandler(void){ // ez csak ideiglenes, amjd ki lesz cserélve a vég
 
 
 void LeftEncoderIntHandler(void){
-	left.sign_counter++;
+	if(left.direction == UPWARD) left.sign_counter++;
+	if(left.direction == DOWNWARD) left.sign_counter--;
 	GPIOIntClear(GPIO_PORTN_BASE,GPIO_PIN_2); // have to do this, because it wont be called again
 }
 
 void RigthEncoderIntHandler(void){
-	right.sign_counter++;
+	if(right.direction == UPWARD) right.sign_counter++;
+	if(right.direction == DOWNWARD) right.sign_counter--;
 	GPIOIntClear(GPIO_PORTM_BASE,GPIO_PIN_4); // have to do this, because it wont be called again
 }
+
+void LeftLevelSensorIntHandler(void){
+	if((left.direction == UPWARD) && GPIOPinRead(GPIO_PORTP_BASE,GPIO_PIN_1)){ // I puted the GPIOPinRead here, because sometimes the reed sensor changed the .position variable too
+		left.position++;
+		//UARTprintf("l_pos: %d\n", left.position);
+	}
+	if((left.direction == DOWNWARD) && GPIOPinRead(GPIO_PORTP_BASE,GPIO_PIN_1)){
+		left.position--;
+		//UARTprintf("l_pos: %d\n", left.position);
+	}
+	GPIOIntClear(GPIO_PORTP_BASE,GPIO_PIN_1);
+} // end of LeftLevelSensorIntHandler
+
+void RightLevelSensorIntHandler(void){
+	if((right.direction == UPWARD) && GPIOPinRead(GPIO_PORTL_BASE,GPIO_PIN_4)){
+		right.position++;
+		//UARTprintf("r_pos: %d\n", right.position);
+	}
+	if((right.direction == DOWNWARD) && GPIOPinRead(GPIO_PORTL_BASE,GPIO_PIN_4)){
+		right.position--;
+		//UARTprintf("r_pos: %d\n", right.position);
+	}
+	GPIOIntClear(GPIO_PORTL_BASE,GPIO_PIN_4);
+}	// end of RightLevelSensorIntHandler
+
 void HbridgeErrorIntHandler(void){
 
 }// end of RightHbridgeErrorIntHandler
@@ -94,7 +122,7 @@ void LeftEncoderInit(void){ //N3, N2
 	// this set the interrrupt to risign edge
 	GPIOIntTypeSet(GPIO_PORTN_BASE,GPIO_PIN_2,GPIO_RISING_EDGE);
 	// enable the interrrupt
-	GPIOIntEnable(GPIO_PORTN_BASE,GPIO_PIN_2);
+	//GPIOIntEnable(GPIO_PORTN_BASE,GPIO_PIN_2);
 } // end of LeftEncoderInit()
 
 void RigthEncoderInit(void){ // M3, M2
@@ -108,7 +136,7 @@ void RigthEncoderInit(void){ // M3, M2
 	// this set the interrrupt to risign edge
 	GPIOIntTypeSet(GPIO_PORTM_BASE,GPIO_PIN_4,GPIO_RISING_EDGE);
 	// enable the interrrupt
-	GPIOIntEnable(GPIO_PORTM_BASE,GPIO_PIN_4);
+	//GPIOIntEnable(GPIO_PORTM_BASE,GPIO_PIN_4);
 } //end of RigthEncoderInit()
 
 void LeftReedInit(void){ // PD1
@@ -143,6 +171,11 @@ void LeftLevelSensorInit(void){ // PP1
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOP);
 	//init of the pin
 	GPIOPinTypeGPIOInput(GPIO_PORTP_BASE,GPIO_PIN_1);
+
+	GPIOIntRegister(GPIO_PORTP_BASE,LeftLevelSensorIntHandler);
+	// this set the interrrupt to risign edge
+	GPIOIntTypeSet(GPIO_PORTP_BASE,GPIO_PIN_1,GPIO_RISING_EDGE);
+
 } // end of LeftLevelSensorInit()
 
 void RightLevelSensorInit(void){ // PL4
@@ -150,6 +183,9 @@ void RightLevelSensorInit(void){ // PL4
 	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOL);
 	//init of the pin
 	GPIOPinTypeGPIOInput(GPIO_PORTL_BASE,GPIO_PIN_4);
+	GPIOIntRegister(GPIO_PORTL_BASE,RightLevelSensorIntHandler);
+	// this set the interrrupt to risign edge
+	GPIOIntTypeSet(GPIO_PORTL_BASE,GPIO_PIN_4,GPIO_RISING_EDGE);
 }// end of RightLEvelSensor()
 
 void LeftEndState(void){ // PD2 with interrupt , disturb the reed interrupt , because they are on the same port
@@ -213,7 +249,7 @@ void SensorsInit(void){
 	RightLevelSensorInit();//jó
 	//LeftEndState();		//jó összekavarja a reed interruptot mert ugyan azona porton van
 	//RightEndState();		//jó
-	RightHbridgeErrorInit();//jó
+	//RightHbridgeErrorInit();//jó not in use, beacusse the Right Level Sensor uses the same interrupt
 	LeftHbridgeErrorInit();	//jó
 }
 //*******************************************************************************
