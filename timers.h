@@ -10,10 +10,16 @@
 
 extern void Timer0IntHandler(void);
 extern void VelocityTimerInit(void);
+extern void VelocityControlTimer(void);
+extern void VelocityMeter(void);
+extern void VelocityControlInt2(void);
 
-float left_desired_v;
-float right_desired_v;
-unsigned char left_dir,right_dir;
+
+int l_prev_signalcnt,l_signalcnt;
+int r_prev_signalcnt,r_signalcnt;
+int timer_period;
+float left_v,right_v;
+
 
 
 #endif /* TIMERS_H_ */
